@@ -21,27 +21,35 @@ def make_readonly(filepath):
         FILE_ATTRIBUTE_READONLY = 0x01
         ctypes.windll.kernel32.SetFileAttributesW(str(filepath), FILE_ATTRIBUTE_READONLY)
 
+def get_all_versions_paths():
+    localappdata = os.environ.get('LOCALAPPDATA')
+    paths = [
+        os.path.join(localappdata, 'Roblox', 'Versions'),
+        os.path.join(localappdata, 'Bloxstrap', 'Versions'),
+        os.path.join(localappdata, 'Fishstrap', 'Versions'),
+    ]
+    return [p for p in paths if os.path.exists(p)]
+
 def install_skybox(chosen_skybox):
     print(f"[DEBUG] Installing skybox: {chosen_skybox}")
     install_assets()
-    localappdata = os.environ.get('LOCALAPPDATA')
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    rbx_versions = os.path.join(localappdata, 'Roblox', 'Versions')
     skybox_textures = os.path.join(script_dir, 'skybox')
     chosen_skybox_path = os.path.join(skybox_textures, chosen_skybox)
-    for version in glob.glob(os.path.join(rbx_versions, '*')):
-        sky_path = os.path.join(version, 'PlatformContent', 'pc', 'textures', 'sky')
-        if os.path.exists(sky_path):
-            print(f"[DEBUG] Replacing skybox in: {sky_path}")
-            # Only remove .tex files that start with 'sky'
-            for f in glob.glob(os.path.join(sky_path, 'sky*.tex')):
-                try:
-                    os.remove(f)
-                except Exception as e:
-                    print(f"[ERROR] Could not remove {f}: {e}")
-            for tex_file in glob.glob(os.path.join(chosen_skybox_path, '*.tex')):
-                print(f"[DEBUG] Copying {tex_file} to {sky_path}")
-                shutil.copy2(tex_file, sky_path)
+    for versions_root in get_all_versions_paths():
+        for version in glob.glob(os.path.join(versions_root, '*')):
+            sky_path = os.path.join(version, 'PlatformContent', 'pc', 'textures', 'sky')
+            if os.path.exists(sky_path):
+                print(f"[DEBUG] Replacing skybox in: {sky_path}")
+                # Only remove .tex files that start with 'sky'
+                for f in glob.glob(os.path.join(sky_path, 'sky*.tex')):
+                    try:
+                        os.remove(f)
+                    except Exception as e:
+                        print(f"[ERROR] Could not remove {f}: {e}")
+                for tex_file in glob.glob(os.path.join(chosen_skybox_path, '*.tex')):
+                    print(f"[DEBUG] Copying {tex_file} to {sky_path}")
+                    shutil.copy2(tex_file, sky_path)
 
 def install_assets():
     print("[DEBUG] Installing assets...")
@@ -81,99 +89,107 @@ def install_assets():
 
 def install_dark_textures():
     print("[DEBUG] Installing dark textures...")
-    localappdata = os.environ.get('LOCALAPPDATA')
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    rbx_versions = os.path.join(localappdata, 'Roblox', 'Versions')
     dark_textures = os.path.join(script_dir, 'dark')
-    if not os.path.exists(rbx_versions):
-        print("[ERROR] Roblox versions folder not found!")
-        messagebox.showerror("Error", "Roblox versions folder not found!")
-        return
     if not os.path.exists(dark_textures):
         print("[ERROR] Dark textures folder not found!")
         messagebox.showerror("Error", "Dark textures folder not found!")
         return
-    for version in glob.glob(os.path.join(rbx_versions, '*')):
-        textures_path = os.path.join(version, 'PlatformContent', 'pc', 'textures')
-        if os.path.exists(textures_path):
-            print(f"[DEBUG] Replacing textures in: {textures_path}")
-            for f in glob.glob(os.path.join(textures_path, '*')):
-                try:
-                    os.remove(f)
-                except Exception as e:
-                    print(f"[ERROR] Could not remove {f}: {e}")
-            for item in os.listdir(dark_textures):
-                s = os.path.join(dark_textures, item)
-                d = os.path.join(textures_path, item)
-                if os.path.isdir(s):
-                    print(f"[DEBUG] Copying directory {s} to {d}")
-                    shutil.copytree(s, d, dirs_exist_ok=True)
-                else:
-                    print(f"[DEBUG] Copying file {s} to {d}")
-                    shutil.copy2(s, d)
+    found = False
+    for versions_root in get_all_versions_paths():
+        for version in glob.glob(os.path.join(versions_root, '*')):
+            textures_path = os.path.join(version, 'PlatformContent', 'pc', 'textures')
+            if os.path.exists(textures_path):
+                found = True
+                print(f"[DEBUG] Replacing textures in: {textures_path}")
+                for f in glob.glob(os.path.join(textures_path, '*')):
+                    try:
+                        os.remove(f)
+                    except Exception as e:
+                        print(f"[ERROR] Could not remove {f}: {e}")
+                for item in os.listdir(dark_textures):
+                    s = os.path.join(dark_textures, item)
+                    d = os.path.join(textures_path, item)
+                    if os.path.isdir(s):
+                        print(f"[DEBUG] Copying directory {s} to {d}")
+                        shutil.copytree(s, d, dirs_exist_ok=True)
+                    else:
+                        print(f"[DEBUG] Copying file {s} to {d}")
+                        shutil.copy2(s, d)
+    if not found:
+        print("[ERROR] No Roblox/Bloxstrap/Fishstrap versions folder found!")
+        messagebox.showerror("Error", "No Roblox/Bloxstrap/Fishstrap versions folder found!")
 
 def restore_skybox():
     print("[DEBUG] Restoring default skybox from stock_sky...")
-    localappdata = os.environ.get('LOCALAPPDATA')
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    rbx_versions = os.path.join(localappdata, 'Roblox', 'Versions')
     stock_sky = os.path.join(script_dir, 'stock_sky')
     if not os.path.exists(stock_sky):
         print("[ERROR] stock_sky folder not found!")
         messagebox.showerror("Error", "stock_sky folder not found!")
         return
-    for version in glob.glob(os.path.join(rbx_versions, '*')):
-        sky_path = os.path.join(version, 'PlatformContent', 'pc', 'textures', 'sky')
-        if os.path.exists(sky_path):
-            print(f"[DEBUG] Restoring skybox in: {sky_path}")
-            # Only remove .tex files that start with 'sky'
-            for f in glob.glob(os.path.join(sky_path, 'sky*.tex')):
-                try:
-                    os.remove(f)
-                except Exception as e:
-                    print(f"[ERROR] Could not remove {f}: {e}")
-            for tex_file in glob.glob(os.path.join(stock_sky, '*.tex')):
-                print(f"[DEBUG] Copying {tex_file} to {sky_path}")
-                shutil.copy2(tex_file, sky_path)
-    messagebox.showinfo("Restored", "Default skybox restored from stock_sky.")
+    found = False
+    for versions_root in get_all_versions_paths():
+        for version in glob.glob(os.path.join(versions_root, '*')):
+            sky_path = os.path.join(version, 'PlatformContent', 'pc', 'textures', 'sky')
+            if os.path.exists(sky_path):
+                found = True
+                print(f"[DEBUG] Restoring skybox in: {sky_path}")
+                # Only remove .tex files that start with 'sky'
+                for f in glob.glob(os.path.join(sky_path, 'sky*.tex')):
+                    try:
+                        os.remove(f)
+                    except Exception as e:
+                        print(f"[ERROR] Could not remove {f}: {e}")
+                for tex_file in glob.glob(os.path.join(stock_sky, '*.tex')):
+                    print(f"[DEBUG] Copying {tex_file} to {sky_path}")
+                    shutil.copy2(tex_file, sky_path)
+    if found:
+        messagebox.showinfo("Restored", "Default skybox restored from stock_sky.")
+    else:
+        print("[ERROR] No Roblox/Bloxstrap/Fishstrap versions folder found!")
+        messagebox.showerror("Error", "No Roblox/Bloxstrap/Fishstrap versions folder found!")
 
 def full_restore():
     print("[DEBUG] Performing FULL RESTORE: Replacing all textures with stock_textures...")
-    localappdata = os.environ.get('LOCALAPPDATA')
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    rbx_versions = os.path.join(localappdata, 'Roblox', 'Versions')
     stock_textures = os.path.join(script_dir, 'stock_textures')
     if not os.path.exists(stock_textures):
         print("[ERROR] stock_textures folder not found!")
         messagebox.showerror("Error", "stock_textures folder not found!")
         return
     replaced = 0
-    for version in glob.glob(os.path.join(rbx_versions, '*')):
-        textures_path = os.path.join(version, 'PlatformContent', 'pc', 'textures')
-        if os.path.exists(textures_path):
-            print(f"[DEBUG] Replacing textures in: {textures_path}")
-            # Remove all current textures
-            for f in glob.glob(os.path.join(textures_path, '*')):
-                try:
-                    if os.path.isdir(f):
-                        shutil.rmtree(f)
-                    else:
-                        os.remove(f)
-                except Exception as e:
-                    print(f"[ERROR] Could not remove {f}: {e}")
-            # Copy all from stock_textures
-            for item in os.listdir(stock_textures):
-                s = os.path.join(stock_textures, item)
-                d = os.path.join(textures_path, item)
-                try:
-                    if os.path.isdir(s):
-                        shutil.copytree(s, d, dirs_exist_ok=True)
-                    else:
-                        shutil.copy2(s, d)
-                except Exception as e:
-                    print(f"[ERROR] Could not copy {s} to {d}: {e}")
-            replaced += 1
-    messagebox.showinfo("Full Restore", f"Replaced textures in {replaced} Roblox version(s) with stock_textures.")
+    for versions_root in get_all_versions_paths():
+        for version in glob.glob(os.path.join(versions_root, '*')):
+            textures_path = os.path.join(version, 'PlatformContent', 'pc', 'textures')
+            if os.path.exists(textures_path):
+                print(f"[DEBUG] Replacing textures in: {textures_path}")
+                # Remove all current textures
+                for f in glob.glob(os.path.join(textures_path, '*')):
+                    try:
+                        if os.path.isdir(f):
+                            shutil.rmtree(f)
+                        else:
+                            os.remove(f)
+                    except Exception as e:
+                        print(f"[ERROR] Could not remove {f}: {e}")
+                # Copy all from stock_textures
+                for item in os.listdir(stock_textures):
+                    s = os.path.join(stock_textures, item)
+                    d = os.path.join(textures_path, item)
+                    try:
+                        if os.path.isdir(s):
+                            shutil.copytree(s, d, dirs_exist_ok=True)
+                        else:
+                            shutil.copy2(s, d)
+                    except Exception as e:
+                        print(f"[ERROR] Could not copy {s} to {d}: {e}")
+                replaced += 1
+    if replaced:
+        messagebox.showinfo("Full Restore", f"Replaced textures in {replaced} Roblox/Bloxstrap/Fishstrap version(s) with stock_textures.")
+    else:
+        print("[ERROR] No Roblox/Bloxstrap/Fishstrap versions folder found!")
+        messagebox.showerror("Error", "No Roblox/Bloxstrap/Fishstrap versions folder found!")
 
 def main_gui():
     ctk.set_appearance_mode("System")
@@ -263,6 +279,7 @@ def main_gui():
     def on_apply():
         install_skybox(selected.get())
         messagebox.showinfo("Done", f"Skybox '{selected.get()}' installed.")
+        messagebox.showinfo("Restart Required", "Please restart the game for changes to take effect.")
 
     # Button frame
     btn_frame = ctk.CTkFrame(container, fg_color="#222", corner_radius=12)
@@ -270,10 +287,41 @@ def main_gui():
 
     btn_style = {"width": 220, "height": 36, "font": ctk.CTkFont(size=14, weight="bold")}
 
-    ctk.CTkButton(btn_frame, text="Apply Skybox", command=on_apply, **btn_style).pack(pady=(16, 8))
-    ctk.CTkButton(btn_frame, text="Apply Dark Textures", command=lambda: [install_dark_textures(), messagebox.showinfo("Done", "Dark textures installed.")], **btn_style).pack(pady=8)
-    ctk.CTkButton(btn_frame, text="Restore Sky", command=restore_skybox, **btn_style).pack(pady=8)
-    ctk.CTkButton(btn_frame, text="Full Restore", command=lambda: [full_restore(), messagebox.showinfo("Done", "Full restore completed.")], **btn_style).pack(pady=(8, 16))
+    ctk.CTkButton(
+        btn_frame,
+        text="Apply Skybox",
+        command=on_apply,
+        **btn_style
+    ).pack(pady=(16, 8))
+    ctk.CTkButton(
+        btn_frame,
+        text="Apply Dark Textures",
+        command=lambda: [
+            install_dark_textures(),
+            messagebox.showinfo("Done", "Dark textures installed."),
+            messagebox.showinfo("Restart Required", "Please restart the game for changes to take effect.")
+        ],
+        **btn_style
+    ).pack(pady=8)
+    ctk.CTkButton(
+        btn_frame,
+        text="Restore Sky",
+        command=lambda: [
+            restore_skybox(),
+            messagebox.showinfo("Restart Required", "Please restart the game for changes to take effect.")
+        ],
+        **btn_style
+    ).pack(pady=8)
+    ctk.CTkButton(
+        btn_frame,
+        text="Full Restore",
+        command=lambda: [
+            full_restore(),
+            messagebox.showinfo("Done", "Full restore completed."),
+            messagebox.showinfo("Restart Required", "Please restart the game for changes to take effect.")
+        ],
+        **btn_style
+    ).pack(pady=(8, 16))
 
     root.mainloop()
 

@@ -11,3 +11,6 @@ Auto Installs A Custom Skybox and Dark Textures if you want them ment for roblox
 1. Clone The Repo
 2. Open `Old CLI`
 3. Run `install.bat` as admin
+
+### Preview
+![alt](Preview.png)

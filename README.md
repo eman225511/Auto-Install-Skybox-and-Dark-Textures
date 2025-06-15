@@ -1,6 +1,7 @@
 # Auto Install Skybox and Dark Textures
 
 Auto Installs A Custom Skybox and Dark Textures if you want them ment for roblox rivals but works on all games
+[Video](https://www.youtube.com/watch?v=A2RKEF0zFRc)
 
 ## Installation (new)
 1. Clone The Repo

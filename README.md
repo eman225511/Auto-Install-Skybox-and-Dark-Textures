@@ -2,8 +2,6 @@
 
 Auto Installs A Custom Skybox and Dark Textures if you want them ment for roblox rivals but works on all games
 
-
-<<<<<<< HEAD
 ## Installation (new)
 1. Clone The Repo
 2. Open `New GUI`

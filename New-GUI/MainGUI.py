@@ -2,9 +2,9 @@ import os
 import shutil
 import glob
 import ctypes
-import tkinter as tk
-from tkinter import ttk, messagebox
-from PIL import Image, ImageTk
+import customtkinter as ctk
+from tkinter import messagebox
+from PIL import Image
 
 def set_console_color():
     # Set console color to light cyan on black (Windows only)
@@ -43,22 +43,6 @@ def install_skybox(chosen_skybox):
                 print(f"[DEBUG] Copying {tex_file} to {sky_path}")
                 shutil.copy2(tex_file, sky_path)
 
-def preview_skybox(chosen_skybox, img_label):
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    skybox_textures = os.path.join(script_dir, 'skybox')
-    chosen_skybox_path = os.path.join(skybox_textures, chosen_skybox)
-    png_files = [f for f in os.listdir(chosen_skybox_path) if f.lower().endswith('.png')]
-    if not png_files:
-        messagebox.showinfo("Preview", "No PNG image found in this skybox folder.")
-        img_label.config(image='', text="No preview available")
-        return
-    img_path = os.path.join(chosen_skybox_path, png_files[0])
-    img = Image.open(img_path)
-    img = img.resize((256, 256))  # Resize for display
-    img_tk = ImageTk.PhotoImage(img)
-    img_label.img_tk = img_tk  # Keep reference
-    img_label.config(image=img_tk, text='')
-
 def install_assets():
     print("[DEBUG] Installing assets...")
     localappdata = os.environ.get('LOCALAPPDATA')
@@ -82,6 +66,13 @@ def install_assets():
         src = os.path.join(assets, filename)
         dst = os.path.join(rbx_storage, folder, filename)
         try:
+            # Remove read-only if file exists
+            if os.path.exists(dst):
+                try:
+                    os.chmod(dst, 0o666)
+                except Exception:
+                    FILE_ATTRIBUTE_NORMAL = 0x80
+                    ctypes.windll.kernel32.SetFileAttributesW(str(dst), FILE_ATTRIBUTE_NORMAL)
             print(f"[DEBUG] Copying asset {src} to {dst}")
             shutil.copy2(src, dst)
             make_readonly(dst)
@@ -185,6 +176,9 @@ def full_restore():
     messagebox.showinfo("Full Restore", f"Replaced textures in {replaced} Roblox version(s) with stock_textures.")
 
 def main_gui():
+    ctk.set_appearance_mode("System")
+    ctk.set_default_color_theme("blue")
+
     script_dir = os.path.dirname(os.path.abspath(__file__))
     skybox_textures = os.path.join(script_dir, 'skybox')
     skybox_folders = [f for f in os.listdir(skybox_textures) if os.path.isdir(os.path.join(skybox_textures, f))]
@@ -192,53 +186,98 @@ def main_gui():
         messagebox.showerror("Error", "No skybox textures found.")
         return
 
-    root = tk.Tk()
+    root = ctk.CTk()
     root.title("Roblox Skybox Installer")
-    root.geometry("320x540")
+    root.geometry("400x640")
     root.resizable(False, False)
 
-    tk.Label(root, text="Choose a Skybox Texture:").pack(pady=(8, 2))
-    selected = tk.StringVar(value=skybox_folders[0])
-    dropdown = ttk.Combobox(root, textvariable=selected, values=skybox_folders, state="readonly")
-    dropdown.pack(pady=(0, 4), fill=tk.X, padx=16)
+    # Main container to center everything
+    container = ctk.CTkFrame(root, fg_color="transparent")
+    container.pack(expand=True, fill="both")
 
-    img_label = tk.Label(root, text="No preview available", bg="#ddd", anchor="center")
-    img_label.pack(pady=6, padx=8, fill=tk.BOTH, expand=False)
+    # Title
+    ctk.CTkLabel(
+        container,
+        text="Roblox Skybox Installer",
+        font=ctk.CTkFont(size=22, weight="bold")
+    ).pack(pady=(18, 10))
+
+    # Skybox selection frame
+    select_frame = ctk.CTkFrame(container, fg_color="transparent")
+    select_frame.pack(pady=(0, 8), padx=32, anchor="center")
+
+    ctk.CTkLabel(
+        select_frame,
+        text="Choose a Skybox Texture:",
+        font=ctk.CTkFont(size=15, weight="bold"),
+        anchor="center",
+        justify="center"
+    ).pack(anchor="center", pady=(0, 6))
+
+    selected = ctk.StringVar(value=skybox_folders[0])
+    dropdown = ctk.CTkComboBox(
+        select_frame,
+        variable=selected,
+        values=skybox_folders,
+        state="readonly",
+        width=240,
+        justify="center"
+    )
+    dropdown.pack(pady=(0, 10), anchor="center")
+
+    # Preview frame
+    preview_frame = ctk.CTkFrame(container, fg_color="transparent", corner_radius=12)
+    preview_frame.pack(pady=(0, 18), padx=32, anchor="center")
+
+    img_label = ctk.CTkLabel(
+        preview_frame,
+        text="No preview available",
+        fg_color="transparent",
+        text_color="#888",
+        anchor="center",
+        corner_radius=8
+    )
+    img_label.pack(padx=8, pady=8)
+
+    def update_preview(*args):
+        try:
+            chosen_skybox_path = os.path.join(skybox_textures, selected.get())
+            png_files = [f for f in os.listdir(chosen_skybox_path) if f.lower().endswith('.png')]
+            if not png_files:
+                img_label.configure(text="No preview available")
+                img_label.image = None
+                return
+            img_path = os.path.join(chosen_skybox_path, png_files[0])
+            img = Image.open(img_path).convert("RGBA")
+            ctk_img = ctk.CTkImage(light_image=img, dark_image=img, size=(220, 220))  # <-- Set desired size here
+            img_label.configure(image=ctk_img, text="")
+            img_label.image = ctk_img
+        except Exception as e:
+            img_label.configure(text="No preview available")
+            img_label.image = None
+            print(f"[ERROR] Could not update preview: {e}")
+
+    selected.trace_add("write", update_preview)
+    update_preview()
 
     def on_apply():
         install_skybox(selected.get())
         messagebox.showinfo("Done", f"Skybox '{selected.get()}' installed.")
 
-    def on_preview():
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        skybox_textures = os.path.join(script_dir, 'skybox')
-        chosen_skybox_path = os.path.join(skybox_textures, selected.get())
-        png_files = [f for f in os.listdir(chosen_skybox_path) if f.lower().endswith('.png')]
-        if not png_files:
-            messagebox.showinfo("Preview", "No PNG image found in this skybox folder.")
-            img_label.config(image='', text="No preview available")
-            return
-        img_path = os.path.join(chosen_skybox_path, png_files[0])
-        img = Image.open(img_path)
-        img = img.resize((220, 220))  # Bigger preview
-        img_tk = ImageTk.PhotoImage(img)
-        img_label.img_tk = img_tk
-        img_label.config(image=img_tk, text='')
+    # Button frame
+    btn_frame = ctk.CTkFrame(container, fg_color="#222", corner_radius=12)
+    btn_frame.pack(pady=10, fill="x", padx=64)
 
-    btn_frame = tk.Frame(root)
-    btn_frame.pack(pady=18, fill=tk.X)
+    btn_style = {"width": 220, "height": 36, "font": ctk.CTkFont(size=14, weight="bold")}
 
-    style = ttk.Style()
-    style.configure("TButton", font=("Segoe UI", 10), padding=6)
-    
-    ttk.Button(btn_frame, text="Preview Skybox", command=on_preview, width=24).pack(fill=tk.X, padx=24)
-    ttk.Button(btn_frame, text="Apply Skybox", command=on_apply, width=24).pack(fill=tk.X, padx=24, pady=(0, 6))
-    ttk.Button(btn_frame, text="Apply Dark Textures", command=lambda: [install_dark_textures(), messagebox.showinfo("Done", "Dark textures installed.")], width=24).pack(fill=tk.X, padx=24, pady=(0, 6))
-    ttk.Button(btn_frame, text="Restore Sky", command=restore_skybox, width=24).pack(fill=tk.X, padx=24, pady=(0, 6))
-    ttk.Button(btn_frame, text="Full Restore", command=lambda: [full_restore(), messagebox.showinfo("Done", "Full restore completed.")], width=24).pack(fill=tk.X, padx=24, pady=(0, 6))
+    ctk.CTkButton(btn_frame, text="Apply Skybox", command=on_apply, **btn_style).pack(pady=(16, 8))
+    ctk.CTkButton(btn_frame, text="Apply Dark Textures", command=lambda: [install_dark_textures(), messagebox.showinfo("Done", "Dark textures installed.")], **btn_style).pack(pady=8)
+    ctk.CTkButton(btn_frame, text="Restore Sky", command=restore_skybox, **btn_style).pack(pady=8)
+    ctk.CTkButton(btn_frame, text="Full Restore", command=lambda: [full_restore(), messagebox.showinfo("Done", "Full restore completed.")], **btn_style).pack(pady=(8, 16))
 
     root.mainloop()
 
 if __name__ == "__main__":
     set_console_color()
     main_gui()
+

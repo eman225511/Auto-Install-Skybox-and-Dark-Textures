@@ -58,6 +58,7 @@ if exist "%SCRIPTPATH%%REQUIREMENTS%" (
     "%PYTHON_EXE%" -m pip install --quiet -r "%SCRIPTPATH%%REQUIREMENTS%" || pause
 )
 
-:: === RUN SCRIPT IN NEW CONSOLE WINDOW ===
-echo Running: "%PYTHON_EXE%" "%SCRIPTPATH%%SCRIPT%"
-start "" cmd /k ""%PYTHON_EXE%" "%SCRIPTPATH%%SCRIPT%" & echo. & echo Press any key to exit... & pause >nul"
+:: === RUN SCRIPT IN NEW CONSOLE WINDOW AS ADMIN ===
+set PYTHON_CMD="%PYTHON_EXE%" "%SCRIPTPATH%%SCRIPT%"
+echo Running as administrator: %PYTHON_CMD%
+powershell -NoProfile -Command "Start-Process cmd -ArgumentList '/k %PYTHON_CMD% & echo. & echo Press any key to exit... & pause' -Verb RunAs"

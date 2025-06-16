@@ -2,7 +2,7 @@
 Huge thanks to @kaizenken on discord for the skyboxes
 
 Auto Installs A Custom Skybox and Dark Textures if you want them ment for roblox rivals but works on all games
-[Video](https://www.youtube.com/watch?v=A2RKEF0zFRc)
+[Youtube Video](https://www.youtube.com/watch?v=A2RKEF0zFRc)
 
 ## Installation (new)
 1. Download from [Here](https://github.com/eman225511/Auto-Install-Skybox-and-Dark-Textures/releases/tag/updare)

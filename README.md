@@ -8,7 +8,14 @@ Auto Installs A Custom Skybox and Dark Textures if you want them ment for roblox
 1. Clone The Repo
 2. Extract the .zip file
 3. Open `New-GUI`
-4. Run `Install-and-Run.bat` as admin 
+4. Run `Install-and-Run.bat` as admin
+
+## Installation (new alternative)
+1. Clone The Repo
+2. Extract the .zip file
+3. Open `New-GUI`
+4. Run `AltInstall.bat` as admin
+5. Then run `AltRun.bat` as admin
 
 ## Installation (old)
 1. Clone The Repo

@@ -102,20 +102,26 @@ def install_dark_textures():
             if os.path.exists(textures_path):
                 found = True
                 print(f"[DEBUG] Replacing textures in: {textures_path}")
+                # Remove all files and folders in textures_path
                 for f in glob.glob(os.path.join(textures_path, '*')):
                     try:
-                        os.remove(f)
+                        if os.path.isdir(f):
+                            shutil.rmtree(f)
+                        else:
+                            os.remove(f)
                     except Exception as e:
                         print(f"[ERROR] Could not remove {f}: {e}")
+                # Copy all files and folders from dark_textures to textures_path
                 for item in os.listdir(dark_textures):
                     s = os.path.join(dark_textures, item)
                     d = os.path.join(textures_path, item)
-                    if os.path.isdir(s):
-                        print(f"[DEBUG] Copying directory {s} to {d}")
-                        shutil.copytree(s, d, dirs_exist_ok=True)
-                    else:
-                        print(f"[DEBUG] Copying file {s} to {d}")
-                        shutil.copy2(s, d)
+                    try:
+                        if os.path.isdir(s):
+                            shutil.copytree(s, d, dirs_exist_ok=True)
+                        else:
+                            shutil.copy2(s, d)
+                    except Exception as e:
+                        print(f"[ERROR] Could not copy {s} to {d}: {e}")
     if not found:
         print("[ERROR] No Roblox/Bloxstrap/Fishstrap versions folder found!")
         messagebox.showerror("Error", "No Roblox/Bloxstrap/Fishstrap versions folder found!")

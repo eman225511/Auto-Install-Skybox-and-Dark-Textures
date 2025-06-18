@@ -1,4 +1,6 @@
 # Auto Install Skybox and Dark Textures
+[New](https://github.com/eman225511/CustomDebloatedBloxLauncher)
+
 Huge thanks to @kaizenken on discord for the skyboxes
 
 Auto Installs A Custom Skybox and Dark Textures if you want them ment for roblox rivals but works on all games
